@@ -55,3 +55,28 @@ the same ruler as the rays.
 One warning worth recognising: run the script on a machine with no display and
 `plt.show()` reports that the canvas is non-interactive. The PNG is already
 written by then, so the line is noise, not failure.
+
+## The second version, the one with a mouse
+
+A still picture of 365 days cannot be asked a question, so I asked for a second
+version: the same wheel as a page, where pointing at a ray lights that day, dims
+the other 364, and reads out its three numbers; and where the title drifts a
+little as the pointer moves. The model wrote `site.py`, which reads the same CSV
+and writes `site/index.html` — the page is generated, like the PNG, and committed
+so the published URL is exactly what the script produces. The PNG, `plot.py` and
+the raw file are all still here; nothing was replaced.
+
+The correction was small and worth writing down. The first hover readout said
+"7% of it arrived" for 4 August while the README said 6%, and both numbers came
+from the same division: the page rounded 6.5% up to the next whole percent, the
+sentence had quietly rounded it down. Two files, two answers, one fact. The page
+and the README now both carry one decimal, 6.5%, which is what the row says. The
+lesson is not "check your numbers" (the numbers were right both times) but that a
+second version of the same work is a second chance for the same fact to say two
+different things — and the copy is the one that gets believed.
+
+Two things I decided against. The hover outline does not enlarge the ray outward
+past its ceiling: a ray that grows on hover would change the measurement, and a
+measurement that moves when you look at it is not a measurement. And the drifting
+title is clamped to a few pixels — enough to feel alive, small enough that it
+never leaves the centre of the wheel or becomes a second thing to look at.

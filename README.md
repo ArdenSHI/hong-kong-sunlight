@@ -39,7 +39,7 @@ May looks like: 4 April received 3.44 kW-hr/m² against a ceiling of 5.78.
 It shows the two things at once and refuses to separate them — the season sets
 the length, the cloud decides the colour. January is the clearest month (85% of
 its ceiling); February to May are the dullest, none of them reaching 70%. The
-dullest single day was 4 August, when 6% of the available light arrived; the
+dullest single day was 4 August, when 6.5% of the available light arrived; the
 clearest was 23 March, at 99.8%.
 
 What it hides: one number per day cannot say *when* the sun came out. A day of
@@ -49,10 +49,21 @@ cell: the value is an average over a 0.5° × 0.625° box, so nothing distinguis
 a sunny island from a cloudy hill. And it is one year — a month here is one
 month, not a climate.
 
+## The same year, with a mouse
+
+The printed picture asks you to trust it. There is a second version of the same
+wheel at <https://ardenshi.github.io/hong-kong-sunlight/>, drawn as SVG from the
+same 365 numbers, where you can put a finger on a day: pointing at a ray dims the
+other 364, thickens that one and shows the three numbers behind it — the date,
+what reached the ground, the ceiling, and the ratio between them. The title in
+the middle drifts a few pixels as the pointer moves, which is the only thing on
+the page that is not data. It is generated, not hand-written, by `site.py`.
+
 ## How to run it
 
 ```bash
 uv run peek.py     # read the file and print it, before drawing anything
 uv run plot.py     # writes out/sunlight-2025.png
+uv run site.py     # writes site/index.html, the interactive version
 uv run fetch.py    # only if data/ is missing: asks NASA once
 ```

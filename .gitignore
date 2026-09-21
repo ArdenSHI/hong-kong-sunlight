@@ -1,9 +1,10 @@
-# Made from data/ on every run. Commit out/; never commit site/.
-site/
+# Made from data/ on every run. Commit out/ and site/: the picture and the page
+# are the two deliverables, and GitHub Pages serves the second one from its own branch.
 data/cache/
 
 # Machinery, not work.
 .venv/
 __pycache__/
+.vscode/
 .DS_Store
 Thumbs.db
