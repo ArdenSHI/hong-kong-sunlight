@@ -1,59 +1,9 @@
-# /// script
-# requires-python = ">=3.10"
-# ///
-
-"""
-The same place, every year there are records for, with one control and one
-clear response.
-
-    uv run site.py
-
-For every file in data/ it writes two things into site/: a page, and the records
-that page draws from.
-
-    index.html            the year the assignment asked about, 2025
-    2026.html             the year that is still happening, as it fills
-    sunlight-<year>.json  one record per day: month, day, what arrived, ceiling
-
-A page asks for its JSON and draws from whatever comes back — records, not a
-finished picture. Choosing a month keeps that month's rays lit and makes the
-line under the control report that month's sunlight; choosing a day lights the
-single ray of that day. Nothing else is fetched, and nothing that is not in the
-reply is drawn.
-
-The scale is one number for every year and is decided before anything is drawn,
-so choosing a month — or another day arriving in a year that is not finished —
-changes what is lit and never what a length means.
-
-This script never asks for anything. update.py goes back to NASA POWER for the
-year that is still growing; this builds the pages from whatever is in data/.
-"""
-
-import csv
-import datetime as dt
-import json
-from pathlib import Path
-
-MISSING = -999.0
-
-PLACE = "hong-kong"
-MAIN_YEAR = 2025     # the year the assignment asked about: it owns index.html
-FULL_SCALE = 8.0     # kW-hr/m²/day at the rim. One scale for every year, so a
-                     # length means the same thing in 2025 and in 2026, and so
-                     # 2026 does not quietly re-scale as its days arrive.
-
-HERE = Path(__file__).parent
-DATA = HERE / "data"
-SITE = HERE / "site"
-
-SOURCE = "NASA POWER CERES SYN1deg, 22.28N 114.16E"
-
-PAGE = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__TITLE__</title>
+<title>Hong Kong Sunlight 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet"
@@ -125,9 +75,9 @@ PAGE = """<!DOCTYPE html>
 <div id="wrap">
   <header>
     <div class="topline">
-      <h1>__TITLE__</h1>
+      <h1>Hong Kong Sunlight 2026</h1>
       <p class="switch">
-      __SWITCH__
+      <a href="index.html">← 2025</a>
       </p>
     </div>
     <p class="promise">When I choose a <em>month</em>, the wheel keeps that
@@ -143,7 +93,7 @@ PAGE = """<!DOCTYPE html>
   </header>
 
   <svg id="chart" viewBox="0 0 900 1000" role="img"
-     aria-label="One ray per day of __YEAR__, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
+     aria-label="One ray per day of 2026, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
   <defs>
     <radialGradient id="halo">
       <stop offset="0%" stop-color="rgb(255,170,70)" stop-opacity="0.20"/>
@@ -228,7 +178,7 @@ PAGE = """<!DOCTYPE html>
     <text x="450" y="447" text-anchor="middle" fill="#4A2C07"
           font-size="21" letter-spacing="2.5">HONG KONG</text>
     <text x="450" y="474" text-anchor="middle" fill="#4A2C07"
-          font-size="16" letter-spacing="2">__YEAR__</text>
+          font-size="16" letter-spacing="2">2026</text>
   </g>
   <g id="legend" fill="#78838F" font-size="16" text-anchor="middle">
     <text x="450" y="884">one ray per day, 1 January at the top, clockwise</text>
@@ -241,8 +191,8 @@ PAGE = """<!DOCTYPE html>
 </svg>
 
   <p class="notes">
-    Source: __SOURCE__ · kW-hr/m²/day · the rim of the wheel is
-    __MAXKW__ kW-hr/m²/day in every year, so a ray's length means the same
+    Source: NASA POWER CERES SYN1deg, 22.28N 114.16E, 2026 · kW-hr/m²/day · the rim of the wheel is
+    8 kW-hr/m²/day in every year, so a ray's length means the same
     thing here as it does in the other year.
     <a id="request-link">Open the JSON request</a> — what crossed the network is
     daily records, not a picture; every line here is drawn from them in the
@@ -252,13 +202,13 @@ PAGE = """<!DOCTYPE html>
 </div>
 <div id="tipbox"></div>
 <script>
-const RECORDS = "__RECORDS__";
-const YEAR = __YEAR__;             // the year this page draws
-const DAYCOUNT = __DAYCOUNT__;     // 365, or 366: a day's angle is its place in
+const RECORDS = "sunlight-2026.json";
+const YEAR = 2026;             // the year this page draws
+const DAYCOUNT = 365;     // 365, or 366: a day's angle is its place in
                                    // the year, not its place in the reply, so a
                                    // year that is not finished leaves a gap
                                    // where its last days have not arrived
-const MAXKW = __MAXKW__;           // kW-hr/m²/day at the rim, every year alike
+const MAXKW = 8;           // kW-hr/m²/day at the rim, every year alike
 const NAMES = ["January", "February", "March", "April", "May", "June", "July",
                "August", "September", "October", "November", "December"];
 
@@ -535,7 +485,7 @@ function readout(month, day) {
 }
 
 function plainText(month, day) {
-  return (readout(month, day).replace(/<[^>]+>/g, " ")).replace(/\\s+/g, " ").trim();
+  return (readout(month, day).replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
 monthPicker.add(new Option("The whole year", 0));
@@ -586,112 +536,3 @@ load();
 </script>
 </body>
 </html>
-"""
-
-
-def rows(path):
-    """The data rows. NASA POWER writes a -BEGIN HEADER- block above the table,
-    so keep the lines that start with a year."""
-    kept = []
-    with path.open(encoding="utf-8-sig", newline="") as handle:
-        for line in csv.reader(handle):
-            if line and line[0].strip().isdigit():
-                kept.append([cell.strip() for cell in line])
-    return kept
-
-
-def daily(table):
-    """One record per day: month, day, what arrived, what a clear sky offered.
-
-    In a year that is not finished, POWER sometimes publishes what arrived
-    before it publishes the ceiling of the same day. Such a day is kept, with
-    None where the ceiling will be: the wheel can draw how much came down even
-    though it cannot yet say what fraction of the sky that was.
-    """
-    days = []
-    for year, month, day, allsky, clearsky in table:      # the loop over the numbers
-        got = float(allsky)
-        if got == MISSING:
-            continue                                      # nothing at all for this day
-        ceiling = float(clearsky)
-        if ceiling == MISSING or ceiling <= 0:
-            ceiling = None                                # not published yet
-        days.append([int(month), int(day), round(got, 2),
-                     None if ceiling is None else round(ceiling, 2)])
-    return days
-
-
-def days_in_year(year):
-    """365, or 366 — how far round the wheel a whole year reaches."""
-    return (dt.date(year, 12, 31) - dt.date(year, 1, 1)).days + 1
-
-
-def page_name(year):
-    return "index.html" if year == MAIN_YEAR else f"{year}.html"
-
-
-def years_on_disk():
-    """Every year there is a file for, oldest first, with its records."""
-    found = []
-    for path in sorted(DATA.glob(f"nasa-power-{PLACE}-daily-solar-*.csv")):
-        year = int(path.stem.rsplit("-", 1)[-1])
-        found.append((year, daily(rows(path))))
-    return sorted(found)
-
-
-def switcher(year, found):
-    """The way into the other years, sitting beside the title."""
-    links = []
-    for other, days in found:
-        if other == year:
-            continue
-        filling = len(days) < days_in_year(other)
-        label = str(other) + (", still filling" if filling else "")
-        links.append('<a href="' + page_name(other) + '">'
-                     + (label + " →" if other > year else "← " + label)
-                     + "</a>")
-    return "\n      ".join(links)
-
-
-def stamp():
-    return dt.datetime.now(dt.timezone.utc).strftime("%d %b %Y, %H:%M UTC")
-
-
-def build():
-    found = years_on_disk()
-    if not found:
-        raise SystemExit(f"no data/nasa-power-{PLACE}-daily-solar-*.csv found")
-    SITE.mkdir(exist_ok=True)
-
-    for year, days in found:
-        records = f"sunlight-{year}.json"
-        path = SITE / records
-        previous = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-        reply = {"source": f"{SOURCE}, {year}", "unit": "kW-hr/m2/day",
-                 "year": year, "updated": previous.get("updated", stamp()),
-                 "note": "Records, not a picture: [month, day, what reached the "
-                         "ground, what a cloudless sky would have delivered]. "
-                         "The ceiling is null on a day POWER has measured but "
-                         "not yet published the clear-sky figure for.",
-                 "days": days}
-        # A rebuild that adds no day keeps the old time: the page must never
-        # claim to be fresher than the records it is drawing.
-        if previous.get("days") != days:
-            reply["updated"] = stamp()
-        path.write_text(json.dumps(reply, separators=(",", ":")), encoding="utf-8")
-
-        page = (PAGE
-                .replace("__TITLE__", f"Hong Kong Sunlight {year}")
-                .replace("__YEAR__", str(year))
-                .replace("__DAYCOUNT__", str(days_in_year(year)))
-                .replace("__MAXKW__", f"{FULL_SCALE:g}")
-                .replace("__RECORDS__", records)
-                .replace("__SOURCE__", f"{SOURCE}, {year}")
-                .replace("__SWITCH__", switcher(year, found)))
-        (SITE / page_name(year)).write_text(page, encoding="utf-8")
-        print(f"{year}: {len(days)} days -> site/{page_name(year)} "
-              f"and site/{records}")
-
-
-if __name__ == "__main__":
-    build()

@@ -20,6 +20,11 @@
                     "Comic Sans MS", cursive; }
   h1 { margin: 0 0 0.5rem; color: #FFD9A0; font-weight: normal;
        font-size: clamp(23px, 3.6vw, 35px); line-height: 1.15; }
+  .topline { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .switch { margin: 0; display: flex; gap: 1.1rem; font-size: 14px; }
+  .switch a { color: #6E93A6; text-decoration: none;
+              border-bottom: 1px solid #26313F; padding-bottom: 1px; }
+  .switch a:hover { color: #FFE9A6; border-bottom-color: #FFE9A6; }
   .promise { margin: 0 0 1.1rem; color: #8A95A3; font-size: 14px; line-height: 1.65; }
   .promise em { color: #C8D0DA; font-style: normal; }
 
@@ -69,7 +74,12 @@
 <body>
 <div id="wrap">
   <header>
-    <h1>Hong Kong Sunlight 2025</h1>
+    <div class="topline">
+      <h1>Hong Kong Sunlight 2025</h1>
+      <p class="switch">
+      <a href="2026.html">2026, still filling →</a>
+      </p>
+    </div>
     <p class="promise">When I choose a <em>month</em>, the wheel keeps that
       month's rays lit and the line below reports what that month got. When I
       choose a <em>day</em>, one ray stays lit and its three numbers are read
@@ -83,7 +93,7 @@
   </header>
 
   <svg id="chart" viewBox="0 0 900 1000" role="img"
-     aria-label="Three hundred and sixty-five rays, one per day of 2025, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
+     aria-label="One ray per day of 2025, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
   <defs>
     <radialGradient id="halo">
       <stop offset="0%" stop-color="rgb(255,170,70)" stop-opacity="0.20"/>
@@ -181,21 +191,31 @@
 </svg>
 
   <p class="notes">
-    Source: NASA POWER CERES SYN1deg, 22.28N 114.16E, 2025 · kW-hr/m²/day.
+    Source: NASA POWER CERES SYN1deg, 22.28N 114.16E, 2025 · kW-hr/m²/day · the rim of the wheel is
+    8 kW-hr/m²/day in every year, so a ray's length means the same
+    thing here as it does in the other year.
     <a id="request-link">Open the JSON request</a> — what crossed the network is
     daily records, not a picture; every line here is drawn from them in the
     browser.
   </p>
+  <p class="notes" id="fresh"></p>
 </div>
 <div id="tipbox"></div>
 <script>
 const RECORDS = "sunlight-2025.json";
+const YEAR = 2025;             // the year this page draws
+const DAYCOUNT = 365;     // 365, or 366: a day's angle is its place in
+                                   // the year, not its place in the reply, so a
+                                   // year that is not finished leaves a gap
+                                   // where its last days have not arrived
+const MAXKW = 8;           // kW-hr/m²/day at the rim, every year alike
 const NAMES = ["January", "February", "March", "April", "May", "June", "July",
                "August", "September", "October", "November", "December"];
 
 const monthPicker = document.getElementById("month");
 const dayPicker = document.getElementById("day");
 const status = document.getElementById("status");
+const fresh = document.getElementById("fresh");
 const requestLink = document.getElementById("request-link");
 requestLink.href = RECORDS;
 
@@ -209,6 +229,7 @@ const tipbox = document.getElementById("tipbox");
 const chart = document.getElementById("chart");
 const rays = document.getElementById("rays");
 
+const NEWYEAR = new Date(YEAR, 0, 1);
 let rows = [];        // the reply: one record per day
 let nodes = [];       // one <g> per day, in the same order
 let labels = {};      // month number -> its wheel caption
@@ -216,6 +237,7 @@ let scale = 1;        // kW-hr/m²/day -> fraction of the radius
 let monthNow = 0;     // state: which month is chosen; 0 is the whole year
 let dayNow = 0;       // state: which day within it; 0 is the whole month
 let chosen = -1;      // the index of the single lit ray, or -1
+let running = false;  // the year is not finished yet
 
 function ramp(t) {                     // the colour of a day, from ratio alone
   const x = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
@@ -228,8 +250,11 @@ function ramp(t) {                     // the colour of a day, from ratio alone
                 .map(v => Math.round(v)).join(",") + ")";
 }
 
-function point(i, radius) {            // day i at radius, clockwise from noon
-  const a = (-90 + 360 * i / rows.length) * Math.PI / 180;
+const doy = row => Math.round((new Date(YEAR, row.month - 1, row.day)
+                              - NEWYEAR) / 864e5);
+
+function point(row, radius) {          // a day at radius, clockwise from noon
+  const a = (-90 + 360 * doy(row) / DAYCOUNT) * Math.PI / 180;
   return [CX + radius * R * Math.cos(a), CY + radius * R * Math.sin(a)];
 }
 
@@ -239,12 +264,19 @@ const el = (name, attrs) => {
   return node;
 };
 
-const dateOf = (row, how) => new Date(2025, row.month - 1, row.day)
+const dateOf = (row, how) => new Date(YEAR, row.month - 1, row.day)
   .toLocaleDateString("en-GB", how);
 const shortDay = row => dateOf(row, { day: "numeric", month: "short" });
 const longDay = row => dateOf(row, { weekday: "long", day: "numeric",
                                      month: "long", year: "numeric" });
-const pct = row => (100 * row.got / row.ceiling).toFixed(1);
+// A day POWER has measured but not yet given a ceiling for can be drawn — what
+// arrived is known — but it cannot be coloured, because the colour is a ratio.
+// It gets a shade of its own so it never poses as a merely dull day.
+const UNKNOWN = "#6E7A88";
+const known = row => row.ceiling !== null;
+const shade = row => known(row) ? ramp(row.got / row.ceiling) : UNKNOWN;
+const pct = row => known(row) ? (100 * row.got / row.ceiling).toFixed(1) + "%"
+                              : "no ceiling published";
 const mean = (list, pick) => list.reduce((sum, row) => sum + pick(row), 0)
                            / list.length;
 const extreme = (list, better) =>
@@ -259,9 +291,11 @@ for (const id of ["sun", "sunbleed", "sunfibre", "sungrain"])
 document.getElementById("halo").setAttribute("r", SUN * 1.55);
 
 function draw() {
-  // One scale for the year, decided once, before anything is chosen. Selecting
-  // a month therefore changes what is lit and never what a length means.
-  scale = (OUTER - INNER) / Math.max(...rows.map(row => row.ceiling));
+  // One scale for every year, decided once, before anything is chosen and
+  // before this year has finished arriving. Selecting a month therefore changes
+  // what is lit and never what a length means, and a new day in a year that is
+  // still running lengthens its own ray without shortening anybody else's.
+  scale = (OUTER - INNER) / MAXKW;
 
   const labelAngle = (-97) * Math.PI / 180;   // just left of twelve o'clock
   const rings = document.getElementById("rings");
@@ -290,7 +324,8 @@ function draw() {
     last[row.month] = i;
   });
   for (const month of Object.keys(first)) {
-    const [x, y] = point((first[month] + last[month]) / 2, 1.045);
+    const middle = rows[Math.round((first[month] + last[month]) / 2)];
+    const [x, y] = point(middle, 1.045);
     const t = el("text", { x: x, y: y, fill: "#5C6C7C", "font-size": 20,
       "text-anchor": "middle", "dominant-baseline": "central" });
     t.textContent = NAMES[month - 1].slice(0, 3).toUpperCase();
@@ -299,22 +334,26 @@ function draw() {
   }
 
   rows.forEach((row, i) => {                  // one ray, one day
-    const [x0, y0] = point(i, INNER);
-    const [x1, y1] = point(i, INNER + row.ceiling * scale);
-    const [xr, yr] = point(i, INNER + row.got * scale);
+    const [x0, y0] = point(row, INNER);
+    // With no ceiling published there is no pale promise beyond the light: the
+    // ray simply stops where the measurement stops.
+    const [x1, y1] = known(row) ? point(row, INNER + row.ceiling * scale)
+                                : point(row, INNER + row.got * scale);
+    const [xr, yr] = point(row, INNER + row.got * scale);
 
     const g = el("g", { class: "day" });
-    const promise = el("line", { class: "promise", x1: x0, y1: y0, x2: x1, y2: y1,
-      stroke: "#46596F", "stroke-width": 2 });
+    if (known(row))
+      g.appendChild(el("line", { class: "promise", x1: x0, y1: y0, x2: x1, y2: y1,
+        stroke: "#46596F", "stroke-width": 2 }));
     const light = el("line", { class: "got", x1: x0, y1: y0, x2: xr, y2: yr,
-      stroke: ramp(row.got / row.ceiling), "stroke-width": 2 });
+      stroke: shade(row), "stroke-width": 2 });
     const dot = el("circle", { class: "tip", cx: xr, cy: yr, r: 4.5,
-      fill: ramp(row.got / row.ceiling), stroke: "#0B0F14", "stroke-width": 1.5 });
+      fill: shade(row), stroke: "#0B0F14", "stroke-width": 1.5 });
     // Six pixels of nothing over every ray, so a line two pixels wide can still
     // be pointed at. It carries the mouse events; the thin lines only carry ink.
     const hit = el("line", { x1: x0, y1: y0, x2: x1, y2: y1,
       stroke: "rgba(0,0,0,0)", "stroke-width": 6, "pointer-events": "stroke" });
-    g.appendChild(promise); g.appendChild(light); g.appendChild(dot);
+    g.appendChild(light); g.appendChild(dot);
     g.appendChild(hit);
     rays.appendChild(g);
     nodes[i] = g;
@@ -323,10 +362,13 @@ function draw() {
       tipbox.innerHTML =
         '<div class="when">' + longDay(row) + "</div>" +
         '<div class="row"><span class="swatch" style="background:'
-        + ramp(row.got / row.ceiling) + '"></span>reached '
+        + shade(row) + '"></span>reached '
         + row.got.toFixed(2) + " kW-hr/m²/day</div>" +
-        '<div class="row dim">ceiling ' + row.ceiling.toFixed(2)
-        + " — " + pct(row) + "% of it arrived</div>";
+        (known(row)
+          ? '<div class="row dim">ceiling ' + row.ceiling.toFixed(2)
+            + " — " + pct(row) + " of it arrived</div>"
+          : '<div class="row dim">its clear-sky ceiling has not been published'
+            + " yet</div>");
     };
     const move = (e) => {                  // stays inside the window, either side
       const pad = 14, w = tipbox.offsetWidth, h = tipbox.offsetHeight;
@@ -360,6 +402,16 @@ function draw() {
       paint(row.month, row.day);
     });
   });
+
+  // One line of legend, and only when there is something to explain. A year
+  // that is still arriving has days whose ceiling has not been published.
+  if (rows.some(row => !known(row))) {
+    const note = el("text", { x: 450, y: 988, fill: "#78838F", "font-size": 16,
+                              "text-anchor": "middle" });
+    note.textContent = "grey: what arrived on a day whose ceiling POWER has "
+                     + "not published yet";
+    document.getElementById("legend").appendChild(note);
+  }
 }
 
 function fillDays(month) {
@@ -392,23 +444,44 @@ function readout(month, day) {
   if (month !== 0 && day !== 0) {
     const row = rows.find(r => r.month === month && r.day === day);
     if (row) return "<b>" + longDay(row) + "</b><br>reached <b>"
-      + row.got.toFixed(2) + "</b> of a possible <b>" + row.ceiling.toFixed(2)
-      + "</b> kW-hr/m²/day — <b>" + pct(row) + "%</b> of it arrived."
+      + row.got.toFixed(2) + "</b>"
+      + (known(row)
+          ? " of a possible <b>" + row.ceiling.toFixed(2)
+            + "</b> kW-hr/m²/day — <b>" + pct(row) + "</b> of it arrived."
+          : " kW-hr/m²/day. POWER has not published this day's clear-sky "
+            + "ceiling yet, so it is drawn grey and has no ratio.")
       + '<br><span class="faint">One ray stays lit on the wheel. Pick another '
       + "day, or point at any other ray.</span>";
   }
   const list = month === 0 ? rows : rows.filter(row => row.month === month);
+  const paired = list.filter(known);          // days that have a ceiling
+  const grey = list.length - paired.length;   // days whose ceiling is still due
   const got = mean(list, row => row.got);
-  const ceiling = mean(list, row => row.ceiling);
-  const clearest = extreme(list, (a, b) => a.got / a.ceiling > b.got / b.ceiling);
-  const dullest = extreme(list, (a, b) => a.got / a.ceiling < b.got / b.ceiling);
-  return "<b>" + (month === 0 ? "2025" : NAMES[month - 1] + " 2025") + "</b> · "
+  const ceiling = paired.length ? mean(paired, row => row.ceiling) : null;
+  const clearest = paired.length
+    ? extreme(paired, (a, b) => a.got / a.ceiling > b.got / b.ceiling) : null;
+  const dullest = paired.length
+    ? extreme(paired, (a, b) => a.got / a.ceiling < b.got / b.ceiling) : null;
+  return "<b>" + (month === 0 ? String(YEAR) : NAMES[month - 1] + " " + YEAR)
+    + "</b> · "
     + list.length + " days · a mean of <b>" + got.toFixed(2) + "</b> kW-hr/m²/day "
-    + "arrived out of <b>" + ceiling.toFixed(2) + "</b> a clear sky offered — <b>"
-    + (100 * got / ceiling).toFixed(1) + "%</b>.<br>"
-    + '<span class="faint">clearest ' + shortDay(clearest) + " (" + pct(clearest)
-    + "%), dullest " + shortDay(dullest) + " (" + pct(dullest)
-    + "%). Now choose a day to keep one ray lit.</span>";
+    + (ceiling === null ? "arrived."
+        : "arrived out of <b>" + ceiling.toFixed(2)
+          + "</b> a clear sky offered — <b>"
+          + (100 * got / ceiling).toFixed(1) + "%</b>.")
+    + "<br>"
+    + '<span class="faint">'
+    + (clearest ? "clearest " + shortDay(clearest) + " (" + pct(clearest)
+        + "), dullest " + shortDay(dullest) + " (" + pct(dullest) + "%). " : "")
+    + (grey ? grey + " of these days have no published ceiling yet and are "
+        + "drawn grey. " : "")
+    + "Now choose a day to keep one ray lit."
+    + (month === 0 && running
+        ? " This year is still being written: " + rows.length + " of "
+          + DAYCOUNT + " days have been published, the last being "
+          + shortDay(rows[rows.length - 1]) + "."
+        : "")
+    + "</span>";
 }
 
 function plainText(month, day) {
@@ -430,7 +503,7 @@ dayPicker.addEventListener("change", () => {
 });
 
 async function load() {
-  status.textContent = "Loading one year of sunlight records…";
+  status.textContent = "Loading " + YEAR + " sunlight records…";
   try {
     const response = await fetch(RECORDS);
     if (!response.ok) throw new Error("HTTP " + response.status);
@@ -439,11 +512,16 @@ async function load() {
       throw new Error("no daily records in the reply");
     rows = reply.days.map(([month, day, got, ceiling]) =>
       ({ month, day, got, ceiling }));
+    running = rows.length < DAYCOUNT;
     draw();
     paint(0, 0);                      // state: the whole year, no day chosen
     status.innerHTML = '<span class="faint">' + rows.length
       + " daily records received. Nothing is drawn that is not in them. "
       + "Choose a month.</span><br>" + readout(0, 0);
+    const last = rows[rows.length - 1];
+    fresh.textContent = rows.length + " of " + DAYCOUNT + " days published"
+      + (running ? ", up to " + longDay(last) : "")
+      + (reply.updated ? " · fetched " + reply.updated : "") + ".";
   } catch (error) {
     status.innerHTML = "The records could not be loaded: " + error.message
         + '. Serve this folder over http (for example <span class="faint">uv run'

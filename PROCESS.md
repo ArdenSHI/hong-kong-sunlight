@@ -188,3 +188,42 @@ thing that makes a test worth committing. Writing it turned up a small trap: a f
 called `site.py` cannot be imported by name in a test, because the standard library
 owns `site` and imports it before the test runs, so the test loads the file by path
 with `importlib` instead.
+
+## The next pass: a year that has not finished, beside one that has
+
+The request was a second year standing next to the first: 2025 staying as the front
+page, with a way into 2026 that updates itself every day. Most of that is plumbing
+— a scheduled workflow that asks the API again each morning and commits the new day
+— but two things in the drawing had to change, and both because a fixed drawing of
+a finished year is a special case of an unfixed drawing of an unfinished one.
+
+The first is the scale. It used to be taken from the data being drawn: the rim was
+wherever the largest ceiling of that year fell. For a year that is still filling
+that number moves the moment a new day arrives higher than every day before it, and
+the whole wheel would creep smaller under a reader who had done nothing — the exact
+opposite of the rule the page states, that a length means one thing. The rim is now
+a constant, 8 kW-hr/m²/day, in the print and in both years, and the print pays for
+it: 2025's rays are about 2.7% shorter than they were yesterday, because the year's
+own maximum (7.79) no longer sets the rim.
+
+The second is where a day sits. A day's angle used to be its place in the reply
+over the number of records in the reply, which is exactly right for a year with all
+365 of them and quietly wrong for a year without them: a day still missing would
+have pulled every later day round the wheel and made the picture lie about when the
+year happened. A day is placed by its day-of-year over 365 now, so an unfinished
+year leaves a gap at the end rather than compressing the days it has.
+
+Then the data itself had something to say, and it is the sort of thing a picture
+has to have an answer for. POWER has published 2026's "what arrived" column through
+19 September and the clear-sky column only through 29 June. I checked it was not my
+request by asking for the same ten days of July in both 2024 (all ten complete) and
+2026 (nine of ten -999). Such a day can be dropped, which throws away a real
+measurement, or given a ceiling, which invents one. It is drawn grey instead: the
+length of what arrived, no pale promise beyond it, no ratio to colour it by, with a
+line in the legend and the count in the reading under the wheel. The test that a
+day with a missing ceiling is kept and not filled in fails if that choice is
+reverted.
+
+One smaller thing, worth writing down because it is easy to get wrong: the "fetched"
+time in the records is kept from the previous build when a rebuild adds no day, so
+the page can never claim to be fresher than the numbers it is drawing.

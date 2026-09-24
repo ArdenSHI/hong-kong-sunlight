@@ -35,11 +35,20 @@ def test_the_header_block_is_not_read_as_data():
 
 
 def test_a_day_without_a_measurement_is_dropped():
-    table = [["2025", "1", "1", "1.83", "3.77"],
-             ["2025", "1", "2", str(MISSING), str(MISSING)],
-             ["2025", "1", "3", "4.45", "4.46"]]
+    table = [["2026", "1", "1", "1.83", "3.77"],
+             ["2026", "1", "2", str(MISSING), str(MISSING)],
+             ["2026", "1", "3", "4.45", "4.46"]]
     days = daily(table)
     assert [day[1] for day in days] == [1, 3]    # 2 January is not drawn
+
+
+def test_a_day_whose_ceiling_is_still_due_is_kept_without_one():
+    table = [["2026", "7", "1", "5.67", str(MISSING)],
+             ["2026", "7", "2", "6.05", "7.32"]]
+    days = daily(table)
+    assert [day[1] for day in days] == [1, 2]       # it is still a day
+    assert days[0][3] is None                       # drawn grey, no ratio
+    assert days[1][3] == 7.32
 
 
 def test_what_arrived_is_never_more_than_the_ceiling():

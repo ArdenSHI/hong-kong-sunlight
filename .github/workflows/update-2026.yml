@@ -1,0 +1,57 @@
+# The year that is still happening gets a new day in it every day, so it cannot
+# be fetched once like 2025 was. This workflow goes back to NASA POWER every
+# morning, rebuilds the pages from whatever came back, commits the new day, and
+# puts the pages on the gh-pages branch the site is published from.
+#
+# Nothing here is needed to read the assignment: 2025 is complete and fetched
+# once, and the page still works if this workflow is switched off.
+name: Another day of Hong Kong sunlight
+
+on:
+  schedule:
+    - cron: "40 2 * * *"        # 10:40 in Hong Kong; POWER publishes overnight
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Ask NASA POWER for this year again
+        run: uv run update.py
+
+      - name: Rebuild every year's page from the records
+        run: uv run site.py
+
+      - name: Keep the new day, if there is one
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data site
+          if git diff --cached --quiet; then
+            echo "No new day published yet; nothing to keep."
+            exit 0
+          fi
+          git commit -q -m "Another day of Hong Kong sunlight"
+          git push origin main
+
+      - name: Put the same pages on gh-pages, where the site is served from
+        run: |
+          cp -r site /tmp/pages
+          git fetch --quiet origin gh-pages
+          git checkout -q -B gh-pages origin/gh-pages
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r /tmp/pages/. .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "gh-pages already carries these pages."
+            exit 0
+          fi
+          git commit -q -m "Publish the pages for $(date -u +%Y-%m-%d)"
+          git push origin gh-pages

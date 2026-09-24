@@ -45,7 +45,10 @@ PLACE = "HONG KONG"
 YEAR = "2025"
 
 INNER = 0.30           # where a ray starts, and where the measurement starts from
-OUTER = 1.00           # where the longest ray ends
+OUTER = 1.00           # where the rim of the wheel is
+FULL_SCALE = 8.0       # kW-hr/m²/day at that rim — the same number the page
+                       # uses, and the same in 2025 and in 2026, so a ray's
+                       # length means one thing in print and in both years
 START = 0.5 * math.pi  # 1 January sits at twelve o'clock and the year runs clockwise
 
 PROMISE = "#46596F"    # the clear-sky ceiling, barely lit
@@ -286,7 +289,10 @@ def main():
         ceiling.append(c)
 
     n = len(days)
-    scale = (OUTER - INNER) / max(ceiling)
+    # One scale, and not this file's own: the page draws the same year, and the
+    # page also draws a year that is still arriving, so the rim has to mean one
+    # number wherever it appears. FULL_SCALE is that number.
+    scale = (OUTER - INNER) / FULL_SCALE
     print(f"{n} days, {days[0]} to {days[-1]}")
     print(f"ceiling {min(ceiling):.2f} to {max(ceiling):.2f}, "
           f"got {min(got):.2f} to {max(got):.2f} kW-hr/m2/day")
