@@ -101,3 +101,27 @@ zero ring at the same fraction of the radius as `site.py` does, so the PNG in
 this README and the page at the URL are one drawing in two materials rather than
 two similar drawings. The numbers were never at risk; the look was, and the look
 is what the reader believes first.
+
+The last thing asked for was a material. The sun was too solid — a filled disc,
+which is what a computer draws when you say "circle" — so it became ink on coarse
+paper: the rim wanders, the grain of the sheet takes the ink unevenly, and the
+name on it is written rather than set. The lesson that cost me the most time is
+about size, not strength. My first grain was built by adding several sizes of
+noise together and then cutting it off at a threshold, and the coarse part
+swallowed the fine part wherever it happened to run low, so the texture came out
+as a watercolour wash. Laid down one size at a time it reads as paper. The second
+lesson is the same one in different clothes: a grain asked for at a smaller scale
+than a pixel of the finished picture is not a fine grain, it is an average, and
+it arrives as a flat darkening of the whole disc — which is exactly why the first
+web version went muddy brown instead of grainy. Ask for the texture at about the
+size it will be seen at. On the page that meant raising the noise frequency until
+its wavelength was about two pixels; in the print it meant asking for the grain on
+a grid as fine as the output, or the enlargement blurs it back into a wash.
+
+Two smaller decisions. The lettering is whichever hand the machine has: the page
+takes a marker webfont and falls back through the handwriting a system is likely
+to own, and `plot.py` takes the first of four script faces it can find and falls
+back to the default rather than failing, so the script still runs on a machine
+with no handwriting at all. And the texture is drawn under the words, never over
+them: grain over lettering is how a picture starts to look like a photocopy of
+itself.

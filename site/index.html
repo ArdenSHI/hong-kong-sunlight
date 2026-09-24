@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>One year of sunlight over Hong Kong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap">
 <style>
   html, body { margin: 0; padding: 0; background: #0B0F14; }
   body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -30,6 +34,10 @@
   #tipbox .row.dim { color: #8A95A3; }
   #tipbox .swatch { width: 10px; height: 10px; border-radius: 2px;
                     display: inline-block; flex: none; }
+  /* A marker pen, if the page can get one; someone's handwriting if it cannot. */
+  #title text { font-family: "Permanent Marker", "Marker Felt", "Bradley Hand",
+                "Ink Free", "Segoe Script", "Comic Sans MS", cursive; }
+  #grain-all { pointer-events: none; }
 </style>
 </head>
 <body>
@@ -49,13 +57,73 @@
       <stop offset="86%" stop-color="#D45D12"/>
       <stop offset="100%" stop-color="#A63C08"/>
     </radialGradient>
+
+    <!-- The sun is ink pressed on coarse paper, not a fill. Its rim wanders a
+         little, and the paper's tooth keeps part of the ink off the page. -->
+    <filter id="ragged" x="-25%" y="-25%" width="150%" height="150%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3"
+                    seed="13" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="9"
+                         xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="tooth" x="-10%" y="-10%" width="120%" height="120%"
+            color-interpolation-filters="sRGB">
+      <!-- About two pixels across, because below that the eye averages it into a
+           flat veil instead of a texture. -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="3"
+                    seed="9" result="n"/>
+      <feColorMatrix in="n" type="matrix"
+        values="0 0 0 0 0.043
+                0 0 0 0 0.059
+                0 0 0 0 0.078
+                1.15 0 0 0 -0.475"/>
+    </filter>
+    <filter id="bleed" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.021" numOctaves="3"
+                    seed="41" result="n"/>
+      <feColorMatrix in="n" type="matrix"
+        values="0 0 0 0 1.0
+                0 0 0 0 0.91
+                0 0 0 0 0.72
+                1.5 0 0 0 -0.78"/>
+    </filter>
+    <filter id="fibre" x="0%" y="0%" width="100%" height="100%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.055" numOctaves="3"
+                    seed="27" result="n"/>
+      <feColorMatrix in="n" type="matrix"
+        values="0 0 0 0 0.043
+                0 0 0 0 0.059
+                0 0 0 0 0.078
+                1.05 0 0 0 -0.42"/>
+    </filter>
+    <radialGradient id="toothfade">
+      <stop offset="0%" stop-color="#4A4A4A"/>
+      <stop offset="62%" stop-color="#8A8A8A"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </radialGradient>
+    <mask id="toothmask" maskContentUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.5" fill="url(#toothfade)"/>
+    </mask>
   </defs>
   <rect width="900" height="1000" fill="#0B0F14"/>
   <circle id="halo" cx="450" cy="455" r="180" fill="url(#halo)"/>
-  <circle id="sun" cx="450" cy="455" r="114" fill="url(#sunskin)"/>
+  <circle id="sun" cx="450" cy="455" r="114" fill="url(#sunskin)" filter="url(#ragged)"/>
+  <circle id="sunbleed" cx="450" cy="455" r="114" fill="#FFE9B8"
+          filter="url(#bleed)" opacity="0.5"/>
+  <circle id="sunfibre" cx="450" cy="455" r="114" fill="#0B0F14"
+          filter="url(#fibre)" opacity="0.42"/>
+  <circle id="sungrain" cx="450" cy="455" r="114" fill="#0B0F14"
+          filter="url(#tooth)" mask="url(#toothmask)"/>
   <g id="rings"></g>
   <g id="rays"></g>
   <g id="months"></g>
+  <!-- The whole sheet: the ink the rays are drawn with sits on the same paper
+       as the sun does, so it is grained too. Under the words, never over them. -->
+  <rect id="grain-all" width="900" height="1000" fill="#0B0F14"
+        filter="url(#fibre)" opacity="0.5"/>
   <g id="title">
     <text x="450" y="447" text-anchor="middle" fill="#4A2C07"
           font-size="21" letter-spacing="2.5">HONG KONG</text>
@@ -113,7 +181,8 @@ const el = (name, attrs) => {
 // it is the thing the numbers are about. The zero line is drawn outside it, at
 // the radius every ray starts from, so the sun never inflates a single day.
 const SUN = 0.26 * R;
-document.getElementById("sun").setAttribute("r", SUN);
+for (const id of ["sun", "sunbleed", "sunfibre", "sungrain"])
+  document.getElementById(id).setAttribute("r", SUN);
 document.getElementById("halo").setAttribute("r", SUN * 1.55);
 
 const rings = document.getElementById("rings");

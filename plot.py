@@ -34,6 +34,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import font_manager
 from matplotlib.colors import LinearSegmentedColormap
 
 FILE = "nasa-power-hong-kong-daily-solar-2025.csv"
@@ -63,6 +64,19 @@ SUN_INK = "#4A2C07"    # dark, because it sits on the lit face of the sun
 SUN_SKIN = ((0.00, "#FFE9A6"), (0.30, "#F9C24E"), (0.62, "#EF8E24"),
             (0.86, "#D45D12"), (1.00, "#A63C08"))
 HALO = ((0.00, 0.20), (0.45, 0.09), (1.00, 0.00))   # radius, then opacity
+
+# It is ink on coarse paper, not a fill: the rim wanders, the sheet's tooth keeps
+# part of the ink off the page, and where the ink thinned the paper lit up.
+SUN_EDGE = 0.075       # how far the rim wanders, as a fraction of the radius
+SUN_TOOTH = 0.45       # paper showing through the ink
+SUN_MOTTLE = 0.16      # the unevenness of a hand, not of a printer
+SUN_BLEED = 0.30       # the pale places where the ink thinned
+SUN_PALE = "#FFE9B8"   # the colour of a thinned place
+GRAIN_FADE = 0.20      # how much of the grain survives at the very centre
+
+# The title is written rather than typeset, if this machine has a hand to lend.
+# Missing, it falls back to the default face and the picture still works.
+TITLE_HANDS = ("Marker Felt", "Bradley Hand", "Chalkboard", "Comic Sans MS")
 
 # What came through, from a shuttered sky to a bare one. One colour ramp, and it
 # carries the only thing the picture refuses to draw any other way.
@@ -114,15 +128,21 @@ def rgb(hexcolour):
     return [int(hexcolour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
 
 
-def field(stops, radius, span=1.05, grid=760):
-    """A round sheet laid over the page, with `stops` — (fraction of the radius,
-    value) — running outward. A value is either '#rrggbb' or a plain number, and
-    numbers land in the alpha channel. Returns how far out every point is, as a
-    fraction of the radius, so the caller can trim an edge."""
+def polar(span, grid):
+    """How far every point on the page is from the middle, and at what angle.
+    Everything round in this picture is built out of these two arrays."""
     axis = np.linspace(-span, span, grid)
     xx, yy = np.meshgrid(axis, axis)
-    t = np.clip(np.hypot(xx, yy) / radius, 0, 1)
-    sheet = np.zeros((grid, grid, 4))
+    return np.hypot(xx, yy), np.arctan2(yy, xx)
+
+
+def field(stops, rr, radius):
+    """A round sheet laid over the page, with `stops` — (fraction of `radius`,
+    value) — running outward. `rr` is how far every point already is. A value is
+    either '#rrggbb' or a plain number, and numbers land in the alpha channel.
+    Returns how far out each point is, as a fraction of the radius."""
+    t = np.clip(rr / radius, 0, 1)
+    sheet = np.zeros((*rr.shape, 4))
     along = [stop[0] for stop in stops]
     if isinstance(stops[0][1], str):
         for channel in range(3):
@@ -134,19 +154,101 @@ def field(stops, radius, span=1.05, grid=760):
     return t, sheet
 
 
-def sun(ax):
+def wobble(theta, seed=3, harmonics=6):
+    """A slow wander round a circle, so a rim looks drawn and not stamped. Built
+    from sines, so it closes on itself, and seeded, so it is the same every run."""
+    rng = np.random.default_rng(seed)
+    phase = rng.random(harmonics) * 2 * math.pi
+    weight = 1.0 / np.arange(1, harmonics + 1)
+    out = sum(w * np.sin((k + 1) * theta + p)
+              for k, (w, p) in enumerate(zip(weight, phase)))
+    return out / weight.sum()
+
+
+def fibre(grid, cells, octaves, seed):
+    """The sheet the ink sits on: random values on a coarse grid, enlarged and
+    half as loud at each step, so it is rough at every size at once. 0 to 1,
+    around 0.5, and the same on every run."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((grid, grid))
+    weight, total = 1.0, 0.0
+    for _ in range(octaves):
+        small = rng.random((cells, cells))
+        at = np.linspace(0, cells - 1, grid)
+        lo = np.floor(at).astype(int)
+        hi = np.minimum(lo + 1, cells - 1)
+        frac = at - lo
+        soft = frac * frac * (3 - 2 * frac)      # smoothstep, or the grid shows
+        band = small[:, lo] * (1 - soft) + small[:, hi] * soft        # along x
+        out += weight * (band[lo, :] * (1 - soft)[:, None]
+                         + band[hi, :] * soft[:, None])               # then along y
+        total += weight
+        weight *= 0.5
+        cells *= 2
+    return out / total
+
+
+def speck(grid, cells, seed, weight, darkest=True):
+    """The roughness of one size of paper, as an amount of colour to lay down.
+    Above the average the sheet's tooth keeps the ink off; below it the ink
+    thinned and the paper shows through paler. `cells` sets the size."""
+    field = fibre(grid, cells, 1, seed)
+    z = (field - field.mean()) / field.std()
+    if not darkest:
+        z = -z
+    return weight * np.clip(z / 2.0, 0, 1)
+
+
+def ink_over(skin, alpha, colour):
+    """Lay a colour over the skin where `alpha` says so — the paper showing
+    through, or ink thinning out into it."""
+    want = np.array(rgb(colour))
+    for channel in range(3):
+        skin[..., channel] = (skin[..., channel] * (1 - alpha)
+                              + want[channel] * alpha)
+    return skin
+
+
+def hands():
+    """The first hand this machine has, or None, which is not a failure."""
+    have = {face.name for face in font_manager.fontManager.ttflist}
+    return next((name for name in TITLE_HANDS if name in have), None)
+
+
+def sun(ax, grid=1400, span=1.05):
     """The thing the numbers are about, in the hole at the middle of the wheel.
     Not a measurement: it is smaller than the radius the rays start from, so no
-    day can be inflated by it."""
-    span = 1.05
-    t, glow = field(HALO, SUN_R * 1.55, span)   # the warmth it puts on the page
+    day can be inflated by it. It is ink on paper, so it is not flat either."""
+    rr, theta = polar(span, grid)
+
+    # The warmth the sun puts on the page, laid down first so the ink sits on
+    # top of its own light.
+    gt, glow = field(HALO, rr, SUN_R * 1.55)
     glow[..., 0], glow[..., 1], glow[..., 2] = rgb("#FFAA46")
-    glow[..., 3] *= 1 - np.clip((t - 1 / 1.55) / 0.02, 0, 1)  # leave room for the disc
+    glow[..., 3] *= 1 - np.clip((gt - 1 / 1.55) / 0.02, 0, 1)   # room for the ink
     ax.imshow(glow, extent=(-span, span, -span, span), origin="lower",
               interpolation="bilinear", zorder=0.5)
 
-    t, skin = field(SUN_SKIN, SUN_R, span)      # the disc itself
-    skin[..., 3] = 1 - np.clip((t - 0.98) / 0.02, 0, 1)      # a soft rim
+    t, skin = field(SUN_SKIN, rr, SUN_R * (1 + SUN_EDGE * wobble(theta)))
+
+    # A hand is never even. Broad blotches, then the tooth of the sheet, then the
+    # places the ink thinned and the paper lit up. The middle stays clearest: it
+    # is the part of the sun the eye is supposed to read through.
+    # A hand is never even, and paper is rough at every size at once, so each
+    # scale is laid down on its own: the blotches a hand leaves, the grain of the
+    # sheet, and the pale places where the ink thinned. Also: separate layers,
+    # because one fractal field added up and then thresholded would let the
+    # coarse part swallow the fine part wherever it happened to be low.
+    fade = GRAIN_FADE + (1 - GRAIN_FADE) * np.clip(t, 0, 1)
+    # The grain is asked for at about the size of a pixel of the finished
+    # picture. Any coarser and the enlargement blurs it into a wash.
+    for cells, seed, colour, weight, darkest in (
+            (18, 27, PAPER, SUN_MOTTLE, True),      # the unevenness of a hand
+            (112, 41, SUN_PALE, SUN_BLEED, False),  # where the ink thinned
+            (700, 9, PAPER, SUN_TOOTH, True)):      # the tooth of the sheet
+        ink_over(skin, speck(grid, cells, seed, weight, darkest) * fade, colour)
+
+    skin[..., 3] = 1 - np.clip((t - 0.975) / 0.025, 0, 1)     # a soft rim
     ax.imshow(skin, extent=(-span, span, -span, span), origin="lower",
               interpolation="bilinear", zorder=1)
 
@@ -212,10 +314,13 @@ def main():
         ax.text(x, y, days[first].strftime("%b").upper(), color="#5C6C7C",
                 fontsize=10, ha="center", va="center")
 
-    ax.text(0, 0.040, PLACE, color=SUN_INK, fontsize=16,
-            ha="center", va="center", zorder=5)
-    ax.text(0, -0.034, YEAR, color=SUN_INK, fontsize=12,
-            ha="center", va="center", zorder=5)
+    # Written on the sun in whatever hand is available. The sizes are set so the
+    # widest hand still fits inside the ink: 0.26 of the radius is 0.52 across.
+    hand = hands()
+    for text, size, y in ((PLACE, 15, 0.040), (YEAR, 11.5, -0.034)):
+        ax.text(0, y, text, color=SUN_INK, ha="center", va="center", zorder=5,
+                fontproperties=font_manager.FontProperties(
+                    family=hand or "sans-serif", size=size))
     fig.text(0.5, 0.055,
              "one ray per day, 1 January at the top, clockwise\n"
              "outer length: what a clear sky would have delivered      "
