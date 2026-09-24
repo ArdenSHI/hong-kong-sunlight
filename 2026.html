@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hong Kong Sunlight 2025</title>
+<title>Hong Kong Sunlight 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet"
@@ -75,9 +75,9 @@
 <div id="wrap">
   <header>
     <div class="topline">
-      <h1>Hong Kong Sunlight 2025</h1>
+      <h1>Hong Kong Sunlight 2026</h1>
       <p class="switch">
-      <a href="2026.html">2026, still filling →</a>
+      <a href="index.html">← 2025</a>
       </p>
     </div>
     <p class="promise">When I choose a <em>month</em>, the wheel keeps that
@@ -93,7 +93,7 @@
   </header>
 
   <svg id="chart" viewBox="0 0 900 1000" role="img"
-     aria-label="One ray per day of 2025, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
+     aria-label="One ray per day of 2026, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
   <defs>
     <radialGradient id="halo">
       <stop offset="0%" stop-color="rgb(255,170,70)" stop-opacity="0.20"/>
@@ -178,7 +178,7 @@
     <text x="450" y="447" text-anchor="middle" fill="#4A2C07"
           font-size="21" letter-spacing="2.5">HONG KONG</text>
     <text x="450" y="474" text-anchor="middle" fill="#4A2C07"
-          font-size="16" letter-spacing="2">2025</text>
+          font-size="16" letter-spacing="2">2026</text>
   </g>
   <g id="legend" fill="#78838F" font-size="16" text-anchor="middle">
     <text x="450" y="884">one ray per day, 1 January at the top, clockwise</text>
@@ -191,7 +191,7 @@
 </svg>
 
   <p class="notes">
-    Source: NASA POWER CERES SYN1deg, 22.28N 114.16E, 2025 · kW-hr/m²/day · the rim of the wheel is
+    Source: NASA POWER CERES SYN1deg, 22.28N 114.16E, 2026 · kW-hr/m²/day · the rim of the wheel is
     8 kW-hr/m²/day in every year, so a ray's length means the same
     thing here as it does in the other year.
     <a id="request-link">Open the JSON request</a> — what crossed the network is
@@ -202,8 +202,8 @@
 </div>
 <div id="tipbox"></div>
 <script>
-const RECORDS = "sunlight-2025.json";
-const YEAR = 2025;             // the year this page draws
+const RECORDS = "sunlight-2026.json";
+const YEAR = 2026;             // the year this page draws
 const DAYCOUNT = 365;     // 365, or 366: a day's angle is its place in
                                    // the year, not its place in the reply, so a
                                    // year that is not finished leaves a gap
