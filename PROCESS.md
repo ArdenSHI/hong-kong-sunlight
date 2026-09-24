@@ -82,12 +82,22 @@ something real: the centre of the wheel stopped being a fixed point, so the eye
 had two places to land instead of one, and the caption is supposed to be the
 still centre of a moving year.
 
-The sun came back, and that is the interesting one. It was rejected in the print
-version as a hard-edged grey disc; here the middle of the wheel is a real sun,
-amber to burnt orange. Filled to the rim of the hole it was the largest object on
-the page — 365 days of measurement reduced to rays coming off a beach ball — so
-it is deliberately smaller than the hole, and the zero ring stays outside it as
-its own visible line. That line matters more than the sun: zero is where the
-rays start, and without it a length on the page is only a length relative to
-another length. Both are now drawn from `INNER`, so if the scale ever changes
-the sun, the ring and the first pixel of every ray move together.
+The sun came back, and that is the interesting one. My first attempt at it in the
+print version was a hard-edged grey disc and I threw it away; this time the
+middle of the wheel is a real sun, amber to burnt orange. Filled to the rim of
+the hole it was the largest object on the page — 365 days of measurement reduced
+to rays coming off a beach ball — so it is deliberately smaller than the hole,
+and the zero ring stays outside it as its own visible line. That line matters
+more than the sun: zero is where the rays start, and without it a length on the
+page is only a length relative to another length. Both are now drawn from
+`INNER`, so if the scale ever changes the sun, the ring and the first pixel of
+every ray move together.
+
+The print then got the same centre back, which is the part worth keeping. A
+drawing that exists twice in two materials is a drawing that can disagree with
+itself, and the disagreement is invisible until someone puts the two side by
+side. `plot.py` now builds its sun from the same five colour stops and puts its
+zero ring at the same fraction of the radius as `site.py` does, so the PNG in
+this README and the page at the URL are one drawing in two materials rather than
+two similar drawings. The numbers were never at risk; the look was, and the look
+is what the reader believes first.

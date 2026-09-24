@@ -34,6 +34,13 @@ because the ceiling itself is low; summer rays reach far out. A dull day is a
 short bright stub inside a long pale promise, which is what much of February to
 May looks like: 4 April received 3.44 kW-hr/m² against a ceiling of 5.78.
 
+In the middle is a sun, amber at the centre through to burnt orange at the rim,
+and the thin pale ring just outside it is zero: it sits at the radius every ray
+starts from, so a length on the page can be read and not only compared. The sun
+is deliberately smaller than the hole it sits in and never touches a ray. It is
+the one mark on the page that is not data, and it is not allowed to measure
+anything.
+
 ## What it shows, and what it hides
 
 It shows the two things at once and refuses to separate them — the season sets
@@ -55,11 +62,10 @@ The printed picture asks you to trust it. There is a second version of the same
 wheel at <https://ardenshi.github.io/hong-kong-sunlight/>, drawn as SVG from the
 same 365 numbers, where you can put a finger on a day: pointing at a ray dims the
 other 364, thickens that one and shows the three numbers behind it — the date,
-what reached the ground, the ceiling, and the ratio between them. The middle of
-the wheel holds a sun, amber fading to burnt orange, which is the only thing on
-the page that is not data; the thin circle drawn just outside it is zero, the
-radius every ray starts from, so no length on the page is unmeasured. It is
-generated, not hand-written, by `site.py`.
+what reached the ground, the ceiling, and the ratio between them. The centre is
+the same sun and the same zero ring as the printed picture, so the two versions
+read as one drawing. Like the picture, it is generated rather than hand-written,
+by `site.py`.
 
 ## How to run it
 

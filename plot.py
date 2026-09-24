@@ -19,6 +19,12 @@ day becomes a ray leaving the centre of the page.
 Summer rays reach further out because the ceiling itself is higher; a dull day is
 a short bright stub inside a long pale promise. Nothing here is decorative: every
 line is one line of the file.
+
+In the middle sits a sun, and round it a pale ring at the radius every ray starts
+from. That ring is the zero: without it a length on the page can only be compared
+with another length, and with it the length can be read. It is drawn outside the
+sun, which is why the sun is smaller than the hole it sits in — a sun that
+reached the rays would be able to inflate a day.
 """
 
 import csv
@@ -37,7 +43,7 @@ MISSING = -999.0
 PLACE = "HONG KONG"
 YEAR = "2025"
 
-INNER = 0.30           # where a ray starts
+INNER = 0.30           # where a ray starts, and where the measurement starts from
 OUTER = 1.00           # where the longest ray ends
 START = 0.5 * math.pi  # 1 January sits at twelve o'clock and the year runs clockwise
 
@@ -48,6 +54,15 @@ PAPER = "#0B0F14"      # the page
 # A few rings of the same radius for every day, so the eye has a ruler.
 RULER = "#1C2632"
 RINGS = (2, 4, 6)      # kW-hr per square metre per day
+ZERO = "#FFEFC9"       # the ring at zero, the one ring that is not a comparison
+
+# The sun: what the numbers are about, not one of the numbers. Amber at the
+# centre down to burnt orange at the rim, the same stops the page uses.
+SUN_R = 0.26           # deliberately less than INNER, so it never touches a ray
+SUN_INK = "#4A2C07"    # dark, because it sits on the lit face of the sun
+SUN_SKIN = ((0.00, "#FFE9A6"), (0.30, "#F9C24E"), (0.62, "#EF8E24"),
+            (0.86, "#D45D12"), (1.00, "#A63C08"))
+HALO = ((0.00, 0.20), (0.45, 0.09), (1.00, 0.00))   # radius, then opacity
 
 # What came through, from a shuttered sky to a bare one. One colour ramp, and it
 # carries the only thing the picture refuses to draw any other way.
@@ -94,21 +109,60 @@ def ray(ax, angle, got, ceiling, scale):
             linewidth=2.0, solid_capstyle="butt", zorder=3)
 
 
-def sun(ax, radius=0.46, brightness=0.07):
-    """A soft disc where the rays come from. Not data — the paper the data sits on."""
-    axis = np.linspace(-1.05, 1.05, 400)
+def rgb(hexcolour):
+    """'#F9C24E' to three floats, so a stop can be interpolated."""
+    return [int(hexcolour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+
+
+def field(stops, radius, span=1.05, grid=760):
+    """A round sheet laid over the page, with `stops` — (fraction of the radius,
+    value) — running outward. A value is either '#rrggbb' or a plain number, and
+    numbers land in the alpha channel. Returns how far out every point is, as a
+    fraction of the radius, so the caller can trim an edge."""
+    axis = np.linspace(-span, span, grid)
     xx, yy = np.meshgrid(axis, axis)
-    falloff = np.exp(-(np.hypot(xx, yy) / radius) ** 2)
-    disc = np.zeros((*falloff.shape, 4))
-    disc[..., 0], disc[..., 1], disc[..., 2] = 1.0, 0.93, 0.76
-    disc[..., 3] = falloff * brightness
-    ax.imshow(disc, extent=(-1.05, 1.05, -1.05, 1.05), origin="lower",
+    t = np.clip(np.hypot(xx, yy) / radius, 0, 1)
+    sheet = np.zeros((grid, grid, 4))
+    along = [stop[0] for stop in stops]
+    if isinstance(stops[0][1], str):
+        for channel in range(3):
+            sheet[..., channel] = np.interp(
+                t, along, [rgb(stop[1])[channel] for stop in stops])
+        sheet[..., 3] = 1.0
+    else:
+        sheet[..., 3] = np.interp(t, along, [stop[1] for stop in stops])
+    return t, sheet
+
+
+def sun(ax):
+    """The thing the numbers are about, in the hole at the middle of the wheel.
+    Not a measurement: it is smaller than the radius the rays start from, so no
+    day can be inflated by it."""
+    span = 1.05
+    t, glow = field(HALO, SUN_R * 1.55, span)   # the warmth it puts on the page
+    glow[..., 0], glow[..., 1], glow[..., 2] = rgb("#FFAA46")
+    glow[..., 3] *= 1 - np.clip((t - 1 / 1.55) / 0.02, 0, 1)  # leave room for the disc
+    ax.imshow(glow, extent=(-span, span, -span, span), origin="lower",
+              interpolation="bilinear", zorder=0.5)
+
+    t, skin = field(SUN_SKIN, SUN_R, span)      # the disc itself
+    skin[..., 3] = 1 - np.clip((t - 0.98) / 0.02, 0, 1)      # a soft rim
+    ax.imshow(skin, extent=(-span, span, -span, span), origin="lower",
               interpolation="bilinear", zorder=1)
 
 
 def ruler(ax, scale):
-    """Rings at the round numbers, so a length on the page has a size."""
-    turn = [2 * math.pi * t / 360 for t in range(361)]
+    """Rings at the round numbers, so a length on the page has a size. The ring
+    at zero is drawn with them and lit differently, because it is the one that
+    says what a length means rather than how it compares."""
+    turn = [2 * math.pi * t / 720 for t in range(721)]
+
+    ax.plot([INNER * math.cos(t) for t in turn], [INNER * math.sin(t) for t in turn],
+            color=ZERO, linewidth=1.4, zorder=4)
+    x, y = xy(math.radians(97), INNER + 0.038)
+    ax.text(x - 0.014, y, "0", color="#C8D0DA", fontsize=8.5, ha="center",
+            va="bottom", zorder=5)
+
     for value in RINGS:
         r = INNER + value * scale
         ax.plot([r * math.cos(t) for t in turn], [r * math.sin(t) for t in turn],
@@ -158,8 +212,10 @@ def main():
         ax.text(x, y, days[first].strftime("%b").upper(), color="#5C6C7C",
                 fontsize=10, ha="center", va="center")
 
-    ax.text(0, 0, f"{PLACE}\n{YEAR}", color=INK, fontsize=14,
-            ha="center", va="center", linespacing=1.6)
+    ax.text(0, 0.040, PLACE, color=SUN_INK, fontsize=16,
+            ha="center", va="center", zorder=5)
+    ax.text(0, -0.034, YEAR, color=SUN_INK, fontsize=12,
+            ha="center", va="center", zorder=5)
     fig.text(0.5, 0.055,
              "one ray per day, 1 January at the top, clockwise\n"
              "outer length: what a clear sky would have delivered      "
