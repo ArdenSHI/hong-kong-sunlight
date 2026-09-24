@@ -125,3 +125,66 @@ back to the default rather than failing, so the script still runs on a machine
 with no handwriting at all. And the texture is drawn under the words, never over
 them: grain over lettering is how a picture starts to look like a photocopy of
 itself.
+
+## The third version, the one with a control
+
+Week 4 asks for one idea from its interface lesson, and asks for the promise to be
+written down before the code: *when I ___, the interface ___.* The promise I wrote
+is on the page itself, because a promise nobody can read is not a constraint:
+
+> When I choose a month, the wheel keeps that month's rays lit and the line below
+> the control reports what that month got.
+
+The shape is the one the week's examples use — input, state, response — and the
+data behaves like the browser demo rather than the Streamlit demo: the page asks
+for one file of records and draws them itself. Nothing is handed a finished
+picture. Reading a day by pointing at it is still there, and clicking a ray now
+writes that day into both selectors, which was the point of the exercise and not a
+feature: state that lives only in a tooltip is not state, and a control that says
+one thing while the picture shows another is a bug with good manners.
+
+I kept one thing from `browser/app.js` on purpose. It fixes a 0–3 m scale before
+drawing and says why: *so changing the day does not change the meaning of height.*
+The wheel had the same rule already — one scale for the year, computed from the
+largest ceiling before anything is chosen — and making it explicit in the page
+matters more than it did in a static picture, because a selector invites the reader
+to compare one month against another, and a picture that rescales per selection
+makes that comparison a lie.
+
+I did not take the other half of the lesson. The week's demos run a Python process
+behind the page — Streamlit, or FastAPI in a Worker — and I did not want the work
+to depend on one being awake: the brief asks for a repository that runs with the
+wifi off, and a URL that is only a picture while something else is running is a
+worse artefact than a URL that is always a picture. So the request is real and has
+no server: `site.py` writes `sunlight-2025.json` from the same committed CSV, the
+page fetches it once, and everything after that is drawn in the browser. The
+trade-off is honest and worth stating: a reader with no network sees the page load
+and then a sentence explaining why it has nothing to draw, where the Streamlit
+version would have worked offline on my laptop and nowhere else.
+
+Two things I had to correct, and both were invisible until I looked properly.
+
+The page was blank for a while and looked like it was still loading. The cause was
+my own string-handling: the page is built in Python, and one escaped quote inside
+the JavaScript got unescaped on the way out, so the whole `<script>` failed to
+parse and the browser silently drew nothing at all — no rays, no error, an empty
+status line, which is exactly what a page that is still fetching looks like. I
+found it by extracting the script block and asking `node --check` about it. A
+script inside a string is not checked by anything that reads the outer file.
+
+The second one is a sentence that had been in the README since the first pass:
+that February to May were the dullest months. Writing the readout meant computing
+each month's mean rather than eyeballing the wheel, and August is the dullest month
+of the year (63.9%), not any of the four I had named. The claim had the right idea
+and the wrong months — a shape the eye sees in the picture and the data then
+disagrees with. The README now carries the computed months and figures, so the page
+and the writing cannot drift apart again without someone noticing.
+
+There is one small test, on reading the file rather than drawing it: that the NASA
+header block is not mistaken for data, that a day POWER could not measure is
+dropped instead of drawn as -999, and that no day reports arriving with more light
+than a clear sky offered. It fails if those guards are removed, which is the only
+thing that makes a test worth committing. Writing it turned up a small trap: a file
+called `site.py` cannot be imported by name in a test, because the standard library
+owns `site` and imports it before the test runs, so the test loads the file by path
+with `importlib` instead.

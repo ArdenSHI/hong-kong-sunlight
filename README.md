@@ -46,9 +46,9 @@ it is not allowed to measure anything.
 ## What it shows, and what it hides
 
 It shows the two things at once and refuses to separate them — the season sets
-the length, the cloud decides the colour. January is the clearest month (85% of
-its ceiling); February to May are the dullest, none of them reaching 70%. The
-dullest single day was 4 August, when 6.5% of the available light arrived; the
+the length, the cloud decides the colour. January is the clearest month (84.9% of
+its ceiling); August is the dullest (63.9%), followed by May (64.2%). The dullest
+single day in the year was 4 August, when 6.5% of the available light arrived; the
 clearest was 23 March, at 99.8%.
 
 What it hides: one number per day cannot say *when* the sun came out. A day of
@@ -58,22 +58,51 @@ cell: the value is an average over a 0.5° × 0.625° box, so nothing distinguis
 a sunny island from a cloudy hill. And it is one year — a month here is one
 month, not a climate.
 
-## The same year, with a mouse
+## The same year, one control at a time
 
 The printed picture asks you to trust it. There is a second version of the same
 wheel at <https://ardenshi.github.io/hong-kong-sunlight/>, drawn as SVG from the
-same 365 numbers, where you can put a finger on a day: pointing at a ray dims the
-other 364, thickens that one and shows the three numbers behind it — the date,
-what reached the ground, the ceiling, and the ratio between them. The centre is
-the same sun on the same coarse paper, and the same zero ring, as the printed
-picture, so the two versions read as one drawing. Like the picture, the page is
-generated rather than hand-written, by `site.py`.
+same 365 numbers and built as a small interface, in the shape week 4 asks for —
+one control, one clear response.
+
+> When I choose a month, the wheel keeps that month's rays lit and the line below
+> the control reports what that month got.
+
+| Part | In this page |
+|---|---|
+| Input | The month selector; the day selector inside it |
+| State | The chosen month and day, held in two variables and shown in the controls |
+| Response | The wheel: the other months fade, the chosen one stays lit, its label brightens, and the line below changes |
+| Data | One request for `site/sunlight-2025.json` — the browser receives 365 records, never a finished picture |
+
+What crossed the network is records, not a chart: `[month, day, what reached the
+ground, what a cloudless sky would have offered]` for every day of 2025, and the
+rays are drawn from them in the browser. The link under the picture opens that
+request. Reading a day is still there as before — pointing at a ray dims the other
+364 and shows its three numbers — and clicking one writes that day into the two
+selectors, so the state is always visible somewhere other than the thing you
+pointed at.
+
+Two rules the page keeps from the printed version. The scale is fixed for the
+whole year before anything is chosen, so choosing a month changes what is lit and
+never what a length means. And the centre is the same sun on the same coarse
+paper, with the same zero ring, so the two versions read as one drawing. Like the
+picture, the page is generated rather than hand-written, by `site.py`.
+
+The selectors also make the page usable where there is no pointer to hover with,
+which is most phones.
 
 ## How to run it
 
 ```bash
 uv run peek.py     # read the file and print it, before drawing anything
 uv run plot.py     # writes out/sunlight-2025.png
-uv run site.py     # writes site/index.html, the interactive version
+uv run site.py     # writes site/index.html and site/sunlight-2025.json
 uv run fetch.py    # only if data/ is missing: asks NASA once
+
+# the page needs an http address; a file:// page may not fetch its own data
+cd site && uv run python -m http.server 8000     # then open 127.0.0.1:8000
+
+# one small test, on the reading of the file rather than the drawing of it
+uv run --with pytest python -m pytest tests/test_site.py
 ```
