@@ -60,8 +60,7 @@ written by then, so the line is noise, not failure.
 
 A still picture of 365 days cannot be asked a question, so I asked for a second
 version: the same wheel as a page, where pointing at a ray lights that day, dims
-the other 364, and reads out its three numbers; and where the title drifts a
-little as the pointer moves. The model wrote `site.py`, which reads the same CSV
+the other 364, and reads out its three numbers. The model wrote `site.py`, which reads the same CSV
 and writes `site/index.html` — the page is generated, like the PNG, and committed
 so the published URL is exactly what the script produces. The PNG, `plot.py` and
 the raw file are all still here; nothing was replaced.
@@ -75,8 +74,20 @@ lesson is not "check your numbers" (the numbers were right both times) but that 
 second version of the same work is a second chance for the same fact to say two
 different things — and the copy is the one that gets believed.
 
-Two things I decided against. The hover outline does not enlarge the ray outward
+Three decisions after that. The hover outline does not enlarge the ray outward
 past its ceiling: a ray that grows on hover would change the measurement, and a
-measurement that moves when you look at it is not a measurement. And the drifting
-title is clamped to a few pixels — enough to feel alive, small enough that it
-never leaves the centre of the wheel or becomes a second thing to look at.
+measurement that moves when you look at it is not a measurement. The drifting
+title went away — asked for, tried, and cut. It was a nice effect that cost
+something real: the centre of the wheel stopped being a fixed point, so the eye
+had two places to land instead of one, and the caption is supposed to be the
+still centre of a moving year.
+
+The sun came back, and that is the interesting one. It was rejected in the print
+version as a hard-edged grey disc; here the middle of the wheel is a real sun,
+amber to burnt orange. Filled to the rim of the hole it was the largest object on
+the page — 365 days of measurement reduced to rays coming off a beach ball — so
+it is deliberately smaller than the hole, and the zero ring stays outside it as
+its own visible line. That line matters more than the sun: zero is where the
+rays start, and without it a length on the page is only a length relative to
+another length. Both are now drawn from `INNER`, so if the scale ever changes
+the sun, the ring and the first pixel of every ray move together.

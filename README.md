@@ -55,9 +55,11 @@ The printed picture asks you to trust it. There is a second version of the same
 wheel at <https://ardenshi.github.io/hong-kong-sunlight/>, drawn as SVG from the
 same 365 numbers, where you can put a finger on a day: pointing at a ray dims the
 other 364, thickens that one and shows the three numbers behind it — the date,
-what reached the ground, the ceiling, and the ratio between them. The title in
-the middle drifts a few pixels as the pointer moves, which is the only thing on
-the page that is not data. It is generated, not hand-written, by `site.py`.
+what reached the ground, the ceiling, and the ratio between them. The middle of
+the wheel holds a sun, amber fading to burnt orange, which is the only thing on
+the page that is not data; the thin circle drawn just outside it is zero, the
+radius every ray starts from, so no length on the page is unmeasured. It is
+generated, not hand-written, by `site.py`.
 
 ## How to run it
 

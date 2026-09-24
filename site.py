@@ -10,8 +10,8 @@ The same year, but you can put a finger on it.
 Reads the file fetch.py saved and writes site/index.html: the 365-ray picture
 again, redrawn as SVG, except now every ray answers the mouse. Hovering a ray
 dims the rest, thickens that day, and shows the three numbers behind it. The
-title in the middle drifts a few pixels with the pointer. Nothing is fetched and
-nothing is drawn that is not in the file.
+middle of the wheel is a sun, and its rim is the zero every ray is measured
+from. Nothing is fetched and nothing is drawn that is not in the file.
 """
 
 import csv
@@ -45,7 +45,6 @@ PAGE = """<!DOCTYPE html>
   .day.hot .got { stroke-width: 4.5; }
   .day .tip { opacity: 0; transition: opacity 0.15s ease; }
   .day.hot .tip { opacity: 1; }
-  #title { transition: none; }
   #tipbox {
     position: fixed; display: none; pointer-events: none; z-index: 10;
     background: #10161E; border: 1px solid #26313F; border-radius: 8px;
@@ -65,23 +64,30 @@ PAGE = """<!DOCTYPE html>
 <svg id="chart" viewBox="0 0 900 1000" role="img"
      aria-label="Three hundred and sixty-five rays, one per day of 2025, showing how much sunlight reached Hong Kong and how much a clear sky would have delivered">
   <defs>
-    <radialGradient id="glow">
-      <stop offset="0%" stop-color="rgb(255,237,194)" stop-opacity="0.10"/>
-      <stop offset="38%" stop-color="rgb(255,237,194)" stop-opacity="0.055"/>
-      <stop offset="72%" stop-color="rgb(255,237,194)" stop-opacity="0.018"/>
-      <stop offset="100%" stop-color="rgb(255,237,194)" stop-opacity="0"/>
+    <radialGradient id="halo">
+      <stop offset="0%" stop-color="rgb(255,170,70)" stop-opacity="0.20"/>
+      <stop offset="45%" stop-color="rgb(255,140,50)" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="rgb(255,130,40)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sunskin">
+      <stop offset="0%" stop-color="#FFE9A6"/>
+      <stop offset="30%" stop-color="#F9C24E"/>
+      <stop offset="62%" stop-color="#EF8E24"/>
+      <stop offset="86%" stop-color="#D45D12"/>
+      <stop offset="100%" stop-color="#A63C08"/>
     </radialGradient>
   </defs>
   <rect width="900" height="1000" fill="#0B0F14"/>
-  <circle id="sun" cx="450" cy="455" r="180" fill="url(#glow)"/>
+  <circle id="halo" cx="450" cy="455" r="180" fill="url(#halo)"/>
+  <circle id="sun" cx="450" cy="455" r="114" fill="url(#sunskin)"/>
   <g id="rings"></g>
   <g id="rays"></g>
   <g id="months"></g>
   <g id="title">
-    <text x="450" y="442" text-anchor="middle" fill="#E8EAED"
-          font-size="28" letter-spacing="4">HONG KONG</text>
-    <text x="450" y="478" text-anchor="middle" fill="#E8EAED"
-          font-size="20" letter-spacing="3">2025</text>
+    <text x="450" y="447" text-anchor="middle" fill="#4A2C07"
+          font-size="21" letter-spacing="2.5">HONG KONG</text>
+    <text x="450" y="474" text-anchor="middle" fill="#4A2C07"
+          font-size="16" letter-spacing="2">2025</text>
   </g>
   <g id="legend" fill="#78838F" font-size="16" text-anchor="middle">
     <text x="450" y="884">one ray per day, 1 January at the top, clockwise</text>
@@ -130,16 +136,32 @@ const el = (name, attrs) => {
   return node;
 };
 
+// The sun sits in the hole in the middle of the wheel and is not a measurement:
+// it is the thing the numbers are about. The zero line is drawn outside it, at
+// the radius every ray starts from, so the sun never inflates a single day.
+const SUN = 0.26 * R;
+document.getElementById("sun").setAttribute("r", SUN);
+document.getElementById("halo").setAttribute("r", SUN * 1.55);
+
 const rings = document.getElementById("rings");
+const labelAngle = (-97) * Math.PI / 180;   // just left of twelve o'clock
+const label = (r, text, colour) => {
+  const t = el("text", {
+    x: CX + r * Math.cos(labelAngle) - 6, y: CY + r * Math.sin(labelAngle) - 5,
+    fill: colour, "font-size": 13, "text-anchor": "middle" });
+  t.textContent = text;
+  rings.appendChild(t);
+};
+
+rings.appendChild(el("circle", { cx: CX, cy: CY, r: INNER * R,  // zero, where rays start
+  fill: "none", stroke: "#FFEFC9", "stroke-width": 2 }));
+label(INNER * R + 15, "0", "#C8D0DA");
+
 for (const value of RINGS) {           // the ruler, same rings as the print
   const r = INNER + value * scale;
   rings.appendChild(el("circle", { cx: CX, cy: CY, r: r * R,
     fill: "none", stroke: "#1C2632", "stroke-width": 1 }));
-  const [x, y] = point(0, 0);          // label just left of twelve o'clock
-  const a = (-97) * Math.PI / 180;
-  rings.appendChild(el("text", {
-    x: CX + r * R * Math.cos(a) - 6, y: CY + r * R * Math.sin(a) - 5,
-    fill: "#33404F", "font-size": 13, "text-anchor": "middle" })).textContent = value;
+  label(r * R, value, "#33404F");
 }
 
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN",
@@ -218,18 +240,6 @@ for (let i = 0; i < n; i++) {          // one ray, one day, in hearing distance
   hit.addEventListener("click", (e) => { show(e); e.stopPropagation(); });
 }
 
-const title = document.getElementById("title");   // the centre drifts with you
-let tx = 0, ty = 0, cx = 0, cy = 0;
-window.addEventListener("pointermove", (e) => {
-  const r = chart.getBoundingClientRect();
-  tx = ((e.clientX - r.left) / r.width - 0.5) * 16;
-  ty = ((e.clientY - r.top) / r.height - 0.5) * 12;
-});
-(function drift() {                 // a slow hand, not a jump
-  cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
-  title.setAttribute("transform", "translate(" + cx.toFixed(2) + "," + cy.toFixed(2) + ")");
-  requestAnimationFrame(drift);
-})();
 </script>
 </body>
 </html>
