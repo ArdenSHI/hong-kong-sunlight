@@ -1,6 +1,6 @@
 -BEGIN HEADER-
 NASA/POWER Source Native Resolution Daily Data 
-Dates (month/day/year): 01/01/2026 through 11/16/2026 in LST
+Dates (month/day/year): 01/01/2026 through 11/17/2026 in LST
 Location: latitude  22.28   longitude 114.16 
 elevation from MERRA-2: Average for 0.5 x 0.625 degree lat/lon region = 53.17 meters
 The value for missing source data that cannot be computed or is outside of the sources availability range: -999 
@@ -324,8 +324,9 @@ YEAR,MO,DY,ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN
 2026,11,9,4.3522,-999.0
 2026,11,10,4.7052,-999.0
 2026,11,11,4.6099,-999.0
-2026,11,12,-999.0,-999.0
+2026,11,12,4.1441,-999.0
 2026,11,13,-999.0,-999.0
 2026,11,14,-999.0,-999.0
 2026,11,15,-999.0,-999.0
 2026,11,16,-999.0,-999.0
+2026,11,17,-999.0,-999.0
